@@ -119,10 +119,11 @@ app.get("/", (req, res) => {
   res.json({ ok: true, message: "PDF Parser API rodando!" });
 });
 
-// POST /pdf/extract
-app.post("/pdf/extract", upload.single("file"), async (req, res) => {
+// POST /pdf/extract — único arquivo (mantido por compatibilidade)
+// upload.any() aceita qualquer nome de campo, evitando MulterError: Unexpected field
+app.post("/pdf/extract", upload.any(), async (req, res) => {
   try {
-    const file = req.file;
+    const file = req.files && req.files[0];
 
     if (!file) {
       return res.status(400).json({ ok: false, message: "Nenhum arquivo enviado." });
@@ -150,6 +151,64 @@ app.post("/pdf/extract", upload.single("file"), async (req, res) => {
 
   } catch (err) {
     console.error("Erro extract:", err);
+    return res.status(500).json({ ok: false, message: "Erro interno do servidor." });
+  }
+});
+
+// POST /pdf/extract-many — múltiplos arquivos
+// upload.any() aceita qualquer nome de campo, evitando MulterError: Unexpected field
+app.post("/pdf/extract-many", upload.any(), async (req, res) => {
+  try {
+    const files = req.files;
+
+    if (!files || files.length === 0) {
+      return res.status(400).json({ ok: false, message: "Nenhum arquivo enviado." });
+    }
+
+    // Processar todos os PDFs em paralelo
+    const results = await Promise.all(
+      files.map(async (file) => {
+        if (file.mimetype !== "application/pdf") {
+          return {
+            filename: file.originalname,
+            ok: false,
+            message: "Arquivo não é um PDF válido."
+          };
+        }
+
+        const extracted = await extractEmployeeInfoFromPDF(file.buffer);
+
+        if (!extracted.codigo) {
+          return {
+            filename: file.originalname,
+            ok: false,
+            message: "Código do funcionário não encontrado no PDF.",
+            fullText: extracted.fullText
+          };
+        }
+
+        return {
+          filename: file.originalname,
+          ok: true,
+          codigo: extracted.codigo,
+          nome: extracted.nome
+        };
+      })
+    );
+
+    const successCount = results.filter(r => r.ok).length;
+    const errorCount = results.length - successCount;
+
+    return res.json({
+      ok: true,
+      total: results.length,
+      successCount,
+      errorCount,
+      results
+    });
+
+  } catch (err) {
+    console.error("Erro extract-many:", err);
     return res.status(500).json({ ok: false, message: "Erro interno do servidor." });
   }
 });
