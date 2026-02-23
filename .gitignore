@@ -1,0 +1,34 @@
+# dependencies
+
+
+# env files (secrets)
+.env
+.env.*
+!.env.example
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# build / coverage
+dist/
+build/
+coverage/
+.nyc_output/
+
+# cache
+.cache/
+.eslintcache
+.parcel-cache/
+.turbo/
+.next/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
