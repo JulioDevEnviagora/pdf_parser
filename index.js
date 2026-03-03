@@ -234,13 +234,14 @@ app.post("/pdf/extract", upload.any(), async (req, res) => {
     if (!result.codigo) {
       return res.status(422).json({
         ok: false,
-        message: "Código do funcionário não encontrado no PDF.",
-        fullText: result.fullText
+        filename: file.originalname,
+        message: "Código do funcionário não encontrado no PDF."
       });
     }
 
     return res.json({
       ok: true,
+      filename: file.originalname,
       codigo: result.codigo,
       nome: result.nome
     });
